@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather App</title>
+  <link rel="stylesheet" href="style.css">
+  
+</head>
+
+<body>
+
+  <div class="app">
+
+    <header>
+      <h1>🌦 Weather Now</h1>
+      <p id="time"></p>
+    </header>
+
+    <!-- Search -->
+    <div class="search-area">
+
+      <input id="cityInput" placeholder="Search city...">
+
+      <button onclick="searchCity()">🔍</button>
+
+      <button onclick="darkMode()">🌙</button>
+
+      <button onclick="getMyLocation()">📍</button>
+
+    </div>
+
+    <!-- Loader -->
+    <div id="loader" class="loader"></div>
+
+    <!-- Weather Card -->
+    <div class="weather-card">
+
+      <h2 id="city">Search City</h2>
+
+      <div id="icon" class="icon"></div>
+
+      <h1 id="temp">--°</h1>
+
+      <p id="condition">Weather Condition</p>
+
+      <div class="details">
+
+        <div class="detail-box">
+          💧
+          <span id="humidity">--%</span>
+          <p>Humidity</p>
+        </div>
+
+        <div class="detail-box">
+          🌬
+          <span id="wind">-- km/h</span>
+          <p>Wind</p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Forecast -->
+    <div class="forecast">
+
+      <div class="forecast-card">
+        Mon
+        <span>32°</span>
+        ☀️
+      </div>
+
+      <div class="forecast-card">
+        Tue
+        <span>30°</span>
+        ☁️
+      </div>
+
+      <div class="forecast-card">
+        Wed
+        <span>28°</span>
+        🌧
+      </div>
+
+      <div class="forecast-card">
+        Thu
+        <span>31°</span>
+        ☀️
+      </div>
+
+      <div class="forecast-card">
+        Fri
+        <span>29°</span>
+        ☁️
+      </div>
+
+    </div>
+
+  </div>
+ 
+  <script>
+    // ================= LIVE CLOCK =================
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById("time").innerHTML =
+        now.toLocaleDateString() + " | " + now.toLocaleTimeString();
+    }, 1000);
+
+    // ================= API KEY =================
+    const apiKey = "de63d744643ec85ff31ab90f4dd9ada9"; // OpenWeather API key
+
+    // ================= AUTO LOCATION ON LOAD =================
+    window.onload = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            getWeatherByLocation(
+              position.coords.latitude,
+              position.coords.longitude,
+            );
+          },
+          () => {
+            document.getElementById("city").innerHTML = "Search a City";
+          },
+        );
+      }
+    };
+
+    // ================= SEARCH CITY =================
+    function searchCity() {
+      const city = document.getElementById("cityInput").value.trim();
+      if (!city) return;
+
+      showLoader(true);
+
+      fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`,
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.cod === 200) {
+            updateUI(data);
+          } else {
+            alert("City not found");
+            showLoader(false);
+          }
+        })
+        .catch(() => showLoader(false));
+    }
+
+    // ================= USE MY LOCATION BUTTON =================
+    function getMyLocation() {
+      if (!navigator.geolocation) {
+        alert("Geolocation not supported");
+        return;
+      }
+
+      showLoader(true);
+
+      navigator.geolocation.getCurrentPosition((position) => {
+        getWeatherByLocation(position.coords.latitude, position.coords.longitude);
+      });
+    }
+
+    // ================= WEATHER BY LOCATION =================
+    function getWeatherByLocation(lat, lon) {
+      fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`,
+      )
+        .then((res) => res.json())
+        .then((data) => updateUI(data))
+        .catch(() => showLoader(false));
+    }
+
+    // ================= UPDATE UI =================
+    function updateUI(data) {
+      showLoader(false);
+
+      document.getElementById("city").innerHTML =
+        `${data.name}, ${data.sys.country}`;
+
+      document.getElementById("temp").innerHTML = Math.round(data.main.temp) + "°C";
+
+      document.getElementById("condition").innerHTML = data.weather[0].description;
+
+      document.getElementById("humidity").innerHTML = data.main.humidity + "%";
+
+      document.getElementById("wind").innerHTML =
+        (data.wind.speed * 3.6).toFixed(1) + " km/h";
+
+      // Weather Icon
+      document.getElementById("icon").innerHTML = `
+    <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png">
+  `;
+
+      // Map Update
+      document.getElementById("map").src =
+        `https://maps.google.com/maps?q=${data.coord.lat},${data.coord.lon}&z=10&output=embed`;
+
+      setBackground(data.weather[0].main);
+    }
+
+    // ================= BACKGROUND BASED ON WEATHER =================
+    function setBackground(weather) {
+      document.body.className = "";
+
+      if (weather === "Clear") document.body.classList.add("sunnyBg");
+      if (weather === "Clouds") document.body.classList.add("cloudyBg");
+      if (weather === "Rain" || weather === "Drizzle")
+        document.body.classList.add("rainBg");
+      if (weather === "Snow") document.body.classList.add("snowBg");
+    }
+
+    // ================= DARK MODE =================
+    function darkMode() {
+      document.body.classList.toggle("dark");
+    }
+
+    // ================= LOADER =================
+    function showLoader(show) {
+      document.getElementById("loader").style.display = show ? "block" : "none";
+    }
+  </script>
+</body>
+
+</html>
